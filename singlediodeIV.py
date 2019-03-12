@@ -1,196 +1,100 @@
-#!/usr/bin/env/ python3
+#!/usr/bin/env python
 
 import scipy.special.lambertw as W
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import ScalarFormatter
 
-# note: the docstrings are indented so that they can be easily folded
-
-def generateIV(*user_parameters):
-    """
-        Generates current-voltage data using the Shockley diode equation.
-
-        The default parameters will return dark current-voltage data for a diode
-        with n = 1, T = 300 K, I0 = 1 nA, IL = 0 A, Rs = 10 ohm, and Rsh = 1 Mohm
-
-        The area defaults to unity; if an area is specified, the function returns
-        current density-voltage instead.
-
-        Parameters
-        ----------
-        *user_parameters: list
-            must be in format [n, T, I0, Iph, Rs, Rsh]
-
-        n : numeric
-            diode ideality factor
-
-        T : numeric
-            absolute temperature [K]
-
-        I0 : numeric
-            diode reverse saturation current [A]
-
-        Iph : numeric
-            photo-generated current [A]
-
-        Rs : numeric
-            diode series resitance [ohms]
-
-        Rsh : numeric
-            diode shunt resistance [ohms]
+# example format for parameter input for SingleDiode class
+testing_params = {'n' : 1.66,
+                  'T' : 200,
+                  'I_0' : 3.32E-9,
+                  'I_ph' : 0.0,
+                  'R_s': 9.23,
+                  'R_sh': 6.36E3}
 
 
-        Returns
-        -------
-        list
-            [[voltages [V]], [currents [A]]
-    """
-    default = [1, 300, 1E-9, 0.0, 10, 1E6]
-    # if the user submits a parameter list, parameters will update
-    if user_parameters:
-        parameters = []
-        for i in user_parameters:
-            parameters += i
-        print('\n'+'Collected user input parameters:'+'\n'+
-              '{}'.format(parameters))
-    else:
-        parameters = default
-        print('\n'+'Data generated using default parameters:'+'\n'+
-              '{}'.format(parameters))
+class SingleDiode(object):
 
-    # set all variables to their corresponding parameters
-    n, T, I0, Iph, Rs, Rsh = parameters
+    def __init__(self, parameters):
+        self.ideality_factor = parameters.get('n', 1.0)
+        self.temperature = parameters.get('T', 300.0)
+        self.saturation_current = parameters.get('I_0', 1.0E-9)
+        self.photocurrent = parameters.get('I_ph', 0.0)
+        self.resistance_series = parameters.get('R_s', 10.0)
+        self.resistance_shunt = parameters.get('R_sh', 1.0E6)
+        self.area = parameters.get('area', 1.0)
 
-    # generate a default voltage range for now
-    step_size = 0.01
-    voltages = list(np.arange(-2.0, 1.0, step_size))
-
-    # initialize the current list
-    currents = []
-
-    # store the thermal voltage [V]
-    Vth = 8.617332E-5*T
-
-    # calculate current for each voltage
-    for V in voltages:
-        z = (Rs*I0)/(n*Vth)*np.exp((Rs*(Iph+I0)+V)/(n*Vth*(1+Rs/Rsh)))
-        I = ((Iph + I0) - V/Rsh)/(1 +Rs/Rsh) - (n*Vth)/(Rs) * W(z, k=0)
-        currents.append(-I.real)
-        V += step_size
-
-    IV_data = [voltages, currents]
-    return IV_data
-
-
-def make_fig(*data, **kwargs):
-    """
-        Outputs a matplotlib.figure.Figure object.
-
-        *args
-        -----
-        data : list
-            Must be a list containing two lists (for x and y)
-
-        *kwargs
-        -------
-        title : string
-            Creates the figure with a title
-
-        xlabel : string
-            Labels the x-axis
-
-        ylabel : string
-            Labels the y-axis
-    """
-    # initialize the figure with an empty subplot
-    fig, ax = plt.subplots(1, 1, figsize=(5,5))
-
-    # handling *args
-    if data:
-        xdata = data[0][0]
-        ydata = data[0][1]
-        ax.plot(xdata, ydata)
-    else:
-        ax.plot()
-
-    # handling *kwargs
-    for name, value in kwargs.items():
-        if name == 'title':
-            ax.set_title(value)
-        elif name == 'xlabel':
-            ax.set_xlabel(value)
-        elif name == 'ylabel':
-            ax.set_ylabel(value)
-
-    return fig
-
-
-def make_semilog_fig(*data, **kwargs):
-    """
-        Docstring goes here.
-    """
-    # initialize the figure with an empty subplot
-    fig, ax = plt.subplots(1, 1, figsize=(5,5))
-
-    # handling *args
-    if data:
-        xdata = data[0][0]
-        ydata = [abs(val) for val in data[0][1]]
-        ax.plot(xdata, ydata)
-    else:
-        ax.plot()
-
-    # set the y-axis of the subplot to log_10 scale
-    ax.set_yscale('log')
-
-    # handling *kwargs
-    for name, value in kwargs.items():
-        if name == 'title':
-            ax.set_title(value)
-        elif name == 'xlabel':
-            ax.set_xlabel(value)
-        elif name == 'ylabel':
-            ax.set_ylabel(value)
-
-    return fig
-
-
-# this one is not working
-def setZoom(figure, xmin=-0.1, xmax=1.0, ymin=-0.03, ymax=0.01):
-    plt.axis([xmin, xmax, ymin, ymax])
-    return figure
-
-
-# this should be re-written to take two Figure objects as arguments
-def plotIV_inline(data, title='default title'):
-
-    abs_current = [abs(val) for val in data[1]]
-
-    figure, (ax1, ax2) = plt.subplots(1,2)
-    figure.suptitle(title)
-    figure.set_figwidth(15)
-    figure.set_figheight(5)
-
-
-    ax1.plot(data[0], abs_current)
-    ax1.set(title = 'abs(I) vs. V [semilog]',
-            xlabel = 'voltage / [V]',
-            ylabel = 'current / [A]',
-            yscale = 'log',
-            ylim = ([1.0E-9, 10]),
-            )
-
-
-    ax2.plot(data[0], data[1])
-    ax2.set(title = 'linear I vs. V [linear]',
-            xlabel='voltage / [V]',
-            ylabel='current / [A]',
-            )
-
-    ax2.axhline(0, color='black', linewidth=1.0)
-    ax2.axvline(0, color='black', linewidth=1.0)
-
-    return figure
+    def __repr__(self):
+        return 'Diode with parameters:\n {}'.format(self.parameters())
 
 
 
+    # class methods
+
+    def parameters(self):
+        return('   n = {}\n'.format(self.ideality_factor) +
+              '   T = {} K\n'.format(self.temperature) +
+              ' I_0 = {} amp\n'.format(self.saturation_current) +
+              'I_ph = {} amp\n'.format(self.photocurrent) +
+              ' R_s = {} ohm\n'.format(self.resistance_series) +
+              'R_sh = {} ohm\n'.format(self.resistance_shunt)+
+              'area = {} cm^2\n'.format(self.area))
+
+
+
+
+    def generateIV(self, Vmin=-2.0, Vmax=1.0, step=0.01):
+        '''
+            Generates voltage and current data using the Shockley diode equation.
+            Diode parameters are obtained from the SingleDiode object. Voltage 
+            minimum, maximum, and step size are optional inputs.
+        '''
+
+        # initialize an empty list for current and generate the voltages
+        self.currents = []
+        self.voltages = list(np.arange(Vmin, Vmax, step))
+
+        # set variables from object parameters
+        n   = self.ideality_factor
+        T   = self.temperature
+        I0  = self.saturation_current
+        Iph = self.photocurrent
+        Rs  = self.resistance_series
+        Rsh = self.resistance_shunt
+        A   = self.area
+
+        # thermal voltage is k_B*T
+        Vth = 8.617332E-5 * T
+
+        for V in self.voltages:
+            z = (Rs*I0)/(n*Vth)*np.exp((Rs*(Iph+I0)+V)/(n*Vth*(1+Rs/Rsh)))
+            I = ((Iph + I0) - V/Rsh)/(1 +Rs/Rsh) - (n*Vth)/(Rs) * W(z, k=0)
+            self.currents.append(-I.real)
+            V += step
+
+        self.IV_data = [self.voltages, self.currents]
+        self.JV_data = [self.voltages, [I/A for I in self.currents]]
+        return self.IV_data
+
+    # Need to make this function extendable (not class method)
+    def plotIV(self):
+        lin_fig = plt.figure(num='Linear Current vs. Voltage')
+        plt.plot(self.voltages, self.currents)
+        plt.text(-1.5, 0.01, self.parameters(), fontname='monospace')
+        plt.ylabel('current / [A]')
+        plt.xlabel('voltage / [V]')
+        plt.axhline(color='black', linewidth=0.5)
+        plt.axvline(color='black', linewidth=0.5)
+
+        log_fig = plt.figure(num='Semi-log Current vs. Voltage')
+        plt.plot(self.voltages, [abs(I) for I in self.currents])
+        plt.yscale('log')
+        plt.ylabel('|current| / [A]')
+        plt.xlabel('voltage / [V]')
+        # ax = plt.axes(x)
+        # ax.set_major_formatter(ScalarFormatter())
+        # ax.grid()
+        plt.axvline(color='black', linewidth=0.5)
+
+        return lin_fig, log_fig
