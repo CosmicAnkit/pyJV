@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 
 # example format for parameter input for SingleDiode class
-testing_params = {'n' : 1.66,
-                  'T' : 200,
-                  'I_0' : 3.32E-9,
-                  'I_ph' : 0.0,
+testing_params = {'n': 1.66,
+                  'T': 200,
+                  'I_0': 3.32E-9,
+                  'I_ph': 0.0,
                   'R_s': 9.23,
                   'R_sh': 6.36E3}
 
@@ -28,27 +28,23 @@ class SingleDiode(object):
     def __repr__(self):
         return 'Diode with parameters:\n {}'.format(self.parameters())
 
-
-
     # class methods
 
     def parameters(self):
         return('   n = {}\n'.format(self.ideality_factor) +
-              '   T = {} K\n'.format(self.temperature) +
-              ' I_0 = {} amp\n'.format(self.saturation_current) +
-              'I_ph = {} amp\n'.format(self.photocurrent) +
-              ' R_s = {} ohm\n'.format(self.resistance_series) +
-              'R_sh = {} ohm\n'.format(self.resistance_shunt)+
-              'area = {} cm^2\n'.format(self.area))
-
-
-
+               '   T = {} K\n'.format(self.temperature) +
+               ' I_0 = {} amp\n'.format(self.saturation_current) +
+               'I_ph = {} amp\n'.format(self.photocurrent) +
+               ' R_s = {} ohm\n'.format(self.resistance_series) +
+               'R_sh = {} ohm\n'.format(self.resistance_shunt)+
+               'area = {} cm^2\n'.format(self.area))
 
     def generateIV(self, Vmin=-2.0, Vmax=1.0, step=0.01):
         '''
-            Generates voltage and current data using the Shockley diode equation.
-            Diode parameters are obtained from the SingleDiode object. Voltage 
-            minimum, maximum, and step size are optional inputs.
+            Generates voltage and current data using the Shockley diode
+             equation.
+            Diode parameters are obtained from the SingleDiode object.
+            Voltage minimum, maximum, and step size are optional inputs.
         '''
 
         # initialize an empty list for current and generate the voltages
